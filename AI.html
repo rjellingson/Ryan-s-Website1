@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Abyss Eel Hunter</title>
+    <style>
+        body {
+            background-color: #001219;
+            color: #94d2bd;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 { letter-spacing: 5px; text-transform: uppercase; margin-bottom: 5px; }
+        
+        #game-container {
+            position: relative;
+            border: 5px solid #0a9396;
+            box-shadow: 0 0 30px rgba(10, 147, 150, 0.3);
+        }
+
+        canvas { display: block; background-color: #00222e; }
+
+        .ui {
+            margin-top: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Eel Hunter</h1>
+    <div id="game-container">
+        <canvas id="eelCanvas" width="400" height="400"></canvas>
+    </div>
+    <div class="ui">Score: <span id="score">0</span></div>
+
+    <script>
+        const canvas = document.getElementById("eelCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreBox = document.getElementById("score");
+
+        const grid = 20;
+        let count = 0;
+        let score = 0;
+        
+        let eel = {
+            x: 160,
+            y: 160,
+            dx: grid,
+            dy: 0,
+            cells: [],
+            maxCells: 4
+        };
+
+        let fish = {
+            x: 320,
+            y: 320
+        };
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        // The Game Loop
+        function loop() {
+            requestAnimationFrame(loop);
+
+            // Slow down the loop to 15fps (Classic Snake Speed)
+            if (++count < 6) {
+                return;
+            }
+            count = 0;
+
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+
+            // Move eel by its velocity
+            eel.x += eel.dx;
+            eel.y += eel.dy;
+
+            // Wrap eel position horizontally
+            if (eel.x < 0) eel.x = canvas.width - grid;
+            else if (eel.x >= canvas.width) eel.x = 0;
+            
+            // Wrap eel position vertically
+            if (eel.y < 0) eel.y = canvas.height - grid;
+            else if (eel.y >= canvas.height) eel.y = 0;
+
+            // Keep track of where eel has been
+            eel.cells.unshift({x: eel.x, y: eel.y});
+
+            // Remove cells as we move away from them
+            if (eel.cells.length > eel.maxCells) {
+                eel.cells.pop();
+            }
+
+            // Draw Fish (Target)
+            ctx.fillStyle = '#ee9b00';
+            ctx.beginPath();
+            ctx.arc(fish.x + grid/2, fish.y + grid/2, grid/2 - 2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw Eel
+            ctx.fillStyle = '#94d2bd';
+            eel.cells.forEach(function(cell, index) {
+                // Head is brighter
+                ctx.fillStyle = (index === 0) ? '#94d2bd' : '#0a9396';
+                ctx.fillRect(cell.x, cell.y, grid-1, grid-1);
+
+                // Check if Eel ate the fish
+                if (cell.x === fish.x && cell.y === fish.y) {
+                    eel.maxCells++;
+                    score++;
+                    scoreBox.innerHTML = score;
+                    fish.x = getRandomInt(0, 20) * grid;
+                    fish.y = getRandomInt(0, 20) * grid;
+                }
+
+                // Check collision with self
+                for (let i = index + 1; i < eel.cells.length; i++) {
+                    if (cell.x === eel.cells[i].x && cell.y === eel.cells[i].y) {
+                        resetGame();
+                    }
+                }
+            });
+        }
+
+        function resetGame() {
+            eel.x = 160;
+            eel.y = 160;
+            eel.cells = [];
+            eel.maxCells = 4;
+            eel.dx = grid;
+            eel.dy = 0;
+            score = 0;
+            scoreBox.innerHTML = score;
+            fish.x = getRandomInt(0, 20) * grid;
+            fish.y = getRandomInt(0, 20) * grid;
+        }
+
+        // Listen for Arrow Keys
+        document.addEventListener('keydown', function(e) {
+            // Prevent eel from reversing on itself
+            if (e.which === 37 && eel.dx === 0) { // Left
+                eel.dx = -grid;
+                eel.dy = 0;
+            } else if (e.which === 38 && eel.dy === 0) { // Up
+                eel.dy = -grid;
+                eel.dx = 0;
+            } else if (e.which === 39 && eel.dx === 0) { // Right
+                eel.dx = grid;
+                eel.dy = 0;
+            } else if (e.which === 40 && eel.dy === 0) { // Down
+                eel.dy = grid;
+                eel.dx = 0;
+            }
+        });
+
+        // Start the game
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
